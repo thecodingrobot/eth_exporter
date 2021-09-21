@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var (
@@ -117,8 +118,9 @@ func main() {
 	gethUrl := os.Getenv("GETH")
 	port = os.Getenv("PORT")
 	prefix = os.Getenv("PREFIX")
+	addressFile := os.Getenv("ADDRESS_FILE")
 
-	err := OpenAddresses("addresses.txt")
+	err := OpenAddresses(addressFile)
 	if err != nil {
 		panic(err)
 	}
