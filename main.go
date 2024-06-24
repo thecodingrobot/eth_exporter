@@ -30,7 +30,6 @@ type Watching struct {
 	Balance string
 }
 
-//
 // Connect to geth server
 func ConnectionToGeth(url string) error {
 	var err error
@@ -38,28 +37,25 @@ func ConnectionToGeth(url string) error {
 	return err
 }
 
-//
 // Fetch ETH balance from Geth server
-func GetEthBalance(address string) *big.Float {
-	balance, err := eth.BalanceAt(context.TODO(), common.HexToAddress(address), nil)
+func GetEthBalance(ctx context.Context, address string) *big.Float {
+	balance, err := eth.BalanceAt(ctx, common.HexToAddress(address), nil)
 	if err != nil {
 		fmt.Printf("Error fetching ETH Balance for address: %v\n", address)
 	}
 	return ToEther(balance)
 }
 
-//
 // Fetch ETH balance from Geth server
-func CurrentBlock() uint64 {
-	block, err := eth.BlockByNumber(context.TODO(), nil)
+func CurrentBlock(ctx context.Context) uint64 {
+	block, err := eth.HeaderByNumber(ctx, nil)
 	if err != nil {
 		fmt.Printf("Error fetching current block height: %v\n", err)
 		return 0
 	}
-	return block.NumberU64()
+	return block.Number.Uint64()
 }
 
-//
 // CONVERTS WEI TO ETH
 func ToEther(o *big.Int) *big.Float {
 	pul, int := big.NewFloat(0), big.NewFloat(0)
@@ -68,7 +64,6 @@ func ToEther(o *big.Int) *big.Float {
 	return pul
 }
 
-//
 // HTTP response handler for /metrics
 func MetricsHttp(w http.ResponseWriter, r *http.Request) {
 	var allOut []string
@@ -89,7 +84,6 @@ func MetricsHttp(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, strings.Join(allOut, "\n"))
 }
 
-//
 // Open the addresses.txt file (name:address)
 func OpenAddresses(filename string) error {
 	file, err := os.Open(filename)
@@ -102,8 +96,8 @@ func OpenAddresses(filename string) error {
 		object := strings.Split(scanner.Text(), ":")
 		if common.IsHexAddress(object[1]) {
 			w := &Watching{
-				Name:    object[0],
-				Address: object[1],
+				Name:    strings.TrimSpace(object[0]),
+				Address: strings.TrimSpace(object[1]),
 			}
 			allWatching = append(allWatching, w)
 		}
@@ -119,6 +113,7 @@ func main() {
 	port = os.Getenv("PORT")
 	prefix = os.Getenv("PREFIX")
 	addressFile := os.Getenv("ADDRESS_FILE")
+	ctx := context.Background()
 
 	err := OpenAddresses(addressFile)
 	if err != nil {
@@ -137,7 +132,7 @@ func main() {
 			t1 := time.Now()
 			fmt.Printf("Checking %v wallets...\n", len(allWatching))
 			for _, v := range allWatching {
-				v.Balance = GetEthBalance(v.Address).String()
+				v.Balance = GetEthBalance(ctx, v.Address).String()
 				totalLoaded++
 			}
 			t2 := time.Now()
@@ -147,7 +142,7 @@ func main() {
 		}
 	}()
 
-	block := CurrentBlock()
+	block := CurrentBlock(ctx)
 
 	fmt.Printf("ETHexporter has started on port %v using Geth server: %v at block #%v\n", port, gethUrl, block)
 	http.HandleFunc("/metrics", MetricsHttp)
