@@ -1,16 +1,18 @@
-FROM golang
+FROM golang:1.26 AS builder
 
-ADD . /go/src/github.com/hunterlong/ethexporter
-RUN cd /go/src/github.com/hunterlong/ethexporter && go get
-RUN go install github.com/hunterlong/ethexporter
+WORKDIR /go/src/github.com/hunterlong/ethexporter
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /ethexporter .
 
-ENV GETH https://mainnet.infura.io
-ENV PORT 9015
+FROM gcr.io/distroless/static-debian13
 
-RUN mkdir /app
-WORKDIR /app
-ADD addresses.txt /app
+COPY --from=builder /ethexporter /ethexporter
+
+ENV GETH=https://mainnet.infura.io
+ENV PORT=9015
 
 EXPOSE 9015
 
-ENTRYPOINT /go/bin/ethexporter
+ENTRYPOINT ["/ethexporter"]

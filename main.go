@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,6 +114,12 @@ func main() {
 	port = os.Getenv("PORT")
 	prefix = os.Getenv("PREFIX")
 	addressFile := os.Getenv("ADDRESS_FILE")
+	sleepSeconds := 60
+	if s := os.Getenv("SLEEP"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			sleepSeconds = n
+		}
+	}
 	ctx := context.Background()
 
 	err := OpenAddresses(addressFile)
@@ -137,8 +144,8 @@ func main() {
 			}
 			t2 := time.Now()
 			loadSeconds = t2.Sub(t1).Seconds()
-			fmt.Printf("Finished checking %v wallets in %0.0f seconds, sleeping for %v seconds.\n", len(allWatching), loadSeconds, 15)
-			time.Sleep(15 * time.Second)
+			fmt.Printf("Finished checking %v wallets in %0.0f seconds, sleeping for %v seconds.\n", len(allWatching), loadSeconds, sleepSeconds)
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
 		}
 	}()
 
